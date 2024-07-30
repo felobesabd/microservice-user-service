@@ -1,0 +1,70 @@
+version: "3.8"
+services:
+
+    # PHP Service
+    php:
+        build:
+            context: .
+            target: php
+            args:
+                - APP_ENV=${APP_ENV}
+        environment:
+            - APP_ENV=${APP_ENV}
+            - CONTAINER_ROLE=app
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+        ports:
+            - 8888:80
+            - 8080:8080
+        depends_on:
+            - database
+            - redis
+        tty: true
+        networks:
+            - my-network
+
+    # Database Server
+    database:
+        image: mysql:8.0
+        ports:
+            - 3308:3306
+        environment:
+            - MYSQL_DATABASE=${DB_DATABASE}
+            - MYSQL_USER=${DB_USERNAME}
+            - MYSQL_PASSWORD=${DB_PASSWORD}
+            - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+        volumes:
+            - db-data:/var/lib/mysql
+        networks:
+            - my-network
+
+    # Redis Server
+    redis:
+        image: redis:alpine
+        command: redis-server --appendonly yes --requirepass  "${REDIS_PASSWORD}"
+        ports:
+            - 6377:6379
+        networks:
+            - my-network
+
+    phpmyadmin:
+        image: phpmyadmin
+        restart: always
+        ports:
+            - 9000:80
+        environment:
+            - PMA_ARBITRARY=1
+            - PMA_HOST=new-user-service-database-1
+            - PMA_USER=${DB_USERNAME}
+            - PMA_PASSWORD=${DB_PASSWORD}
+        networks:
+            - my-network
+
+
+volumes:
+    db-data: ~
+
+networks:
+    my-network:
+        external: true
